@@ -17,19 +17,26 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   headers.set("Content-Type", "application/json");
   if (options.token) headers.set("Authorization", `Bearer ${options.token}`);
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-    cache: "no-store"
-  });
+  try {
+    const response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers,
+      cache: "no-store"
+    });
 
-  if (!response.ok) {
-    const detail = await response.json().catch(() => ({ detail: "Request failed" }));
-    throw new Error(detail.detail ?? "Request failed");
+    if (!response.ok) {
+      const detail = await response.json().catch(() => ({ detail: "Request failed" }));
+      throw new Error(detail.detail ?? `Request failed with status ${response.status}`);
+    }
+
+    if (response.status === 204) return undefined as T;
+    return response.json() as Promise<T>;
+  } catch (error) {
+    if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
+      throw new Error(`Failed to connect to API at ${API_URL}. Please ensure the backend server is running.`);
+    }
+    throw error;
   }
-
-  if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
 }
 
 export const api = {
