@@ -36,9 +36,13 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title=settings.app_name, version="1.0.0", lifespan=lifespan)
 app.state.limiter = limiter
 
+allowed_origins = [settings.frontend_origin]
+if settings.frontend_origin != "http://localhost:3001":
+    allowed_origins.append("http://localhost:3001")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

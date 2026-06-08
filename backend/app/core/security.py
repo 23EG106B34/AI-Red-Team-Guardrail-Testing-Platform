@@ -51,8 +51,16 @@ def require_roles(*roles: Role):
 
 
 def encryption() -> Fernet:
-    key = settings.fernet_key.encode() if settings.fernet_key else Fernet.generate_key()
-    return Fernet(key)
+    if not settings.fernet_key:
+        return Fernet(Fernet.generate_key())
+
+    try:
+        return Fernet(settings.fernet_key.encode())
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            "Invalid FERNET_KEY configured. It must be a 32-byte URL-safe base64-encoded key. "
+            "Update backend/.env or the environment variable with a valid Fernet key."
+        ) from exc
 
 
 def looks_like_prompt_injection(text: str) -> bool:

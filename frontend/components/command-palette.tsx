@@ -6,19 +6,22 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
+import { useAuth } from "@/components/auth-provider";
 import { cn } from "@/lib/utils";
 
-const actions: Array<{ label: string; href: Route }> = [
+const baseActions: Array<{ label: string; href: string }> = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Run Red-Team Test", href: "/tests" },
   { label: "Attack Library", href: "/library" },
-  { label: "Reports", href: "/reports" },
-  { label: "Admin Console", href: "/admin" }
+  { label: "Reports", href: "/reports" }
 ];
+
+const adminAction = { label: "Admin Console", href: "/admin" };
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const { user } = useAuth();
 
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
@@ -46,13 +49,13 @@ export function CommandPalette() {
           </div>
           <Command.List className="max-h-72 overflow-y-auto p-2">
             <Command.Empty className="p-4 text-sm text-muted-foreground">No command found.</Command.Empty>
-            {actions.map((action) => (
+            {[...baseActions, ...(user?.role === "admin" ? [adminAction] : [])].map((action) => (
               <Command.Item
                 key={action.href}
                 value={action.label}
                 className={cn("cursor-pointer rounded-md px-3 py-2 text-sm aria-selected:bg-muted")}
                 onSelect={() => {
-                  router.push(action.href);
+                  router.push(action.href as Route);
                   setOpen(false);
                 }}
               >

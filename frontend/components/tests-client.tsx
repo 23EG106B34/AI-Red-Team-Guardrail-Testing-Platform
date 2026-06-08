@@ -2,25 +2,40 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Play, ShieldAlert } from "lucide-react";
+import { AlertTriangle, Play, RefreshCw, ShieldAlert } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/auth-provider";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import type { TestRun } from "@/types/domain";
 
 export function TestsClient() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [runs, setRuns] = useState<TestRun[]>([]);
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (token) api.tests(token).then(setRuns);
+    if (!token) {
+      setFetching(false);
+      return;
+    }
+    setFetching(true);
+    setFetchError(null);
+    api
+      .tests(token)
+      .then((data) => setRuns(data ?? []))
+      .catch((err) =>
+        setFetchError(err instanceof Error ? err.message : "Failed to load test history")
+      )
+      .finally(() => setFetching(false));
   }, [token]);
 
   async function run(event: React.FormEvent<HTMLFormElement>) {
@@ -42,6 +57,30 @@ export function TestsClient() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function retry() {
+    if (!token) return;
+    setFetching(true);
+    setFetchError(null);
+    api
+      .tests(token)
+      .then((data) => setRuns(data ?? []))
+      .catch((err) =>
+        setFetchError(err instanceof Error ? err.message : "Failed to load test history")
+      )
+      .finally(() => setFetching(false));
+  }
+
+  if (!user) {
+    return (
+      <AppShell>
+        <div className="rounded-lg border bg-background/60 p-8 text-sm text-muted-foreground">
+          <p className="text-lg font-semibold">Login required</p>
+          <p className="mt-2">Please sign in to run red-team tests and view history.</p>
+        </div>
+      </AppShell>
+    );
   }
 
   return (
@@ -80,35 +119,56 @@ export function TestsClient() {
             <CardTitle>Test history</CardTitle>
           </CardHeader>
           <CardContent className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-sm">
-              <thead className="text-left text-muted-foreground">
-                <tr>
-                  <th className="py-3">Model</th>
-                  <th>Risk</th>
-                  <th>Attack success</th>
-                  <th>Hallucination</th>
-                  <th>Latency</th>
-                  <th>Status</th>
-                  <th>Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {runs.map((run) => (
-                  <tr key={run.id} className="border-t">
-                    <td className="py-3 font-medium">{run.target_model}</td>
-                    <td>{run.risk_score}</td>
-                    <td>{run.attack_success_rate}%</td>
-                    <td>{run.hallucination_rate}%</td>
-                    <td>{run.latency_ms}ms</td>
-                    <td>
-                      <Badge className="border-accent/40 text-accent">{run.status}</Badge>
-                    </td>
-                    <td>{formatDate(run.created_at)}</td>
-                  </tr>
+            {fetching ? (
+              <div className="grid gap-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12" />
                 ))}
-              </tbody>
-            </table>
-            {runs.length === 0 ? <p className="py-12 text-center text-muted-foreground">No tests yet. Launch one to populate audit history.</p> : null}
+              </div>
+            ) : fetchError ? (
+              <div className="flex flex-col items-center gap-3 py-12 text-center">
+                <AlertTriangle className="size-8 text-destructive" />
+                <p className="text-sm text-muted-foreground">{fetchError}</p>
+                <Button variant="outline" size="sm" onClick={retry}>
+                  <RefreshCw className="size-4" />
+                  Retry
+                </Button>
+              </div>
+            ) : (
+              <>
+                <table className="w-full min-w-[720px] text-sm">
+                  <thead className="text-left text-muted-foreground">
+                    <tr>
+                      <th className="py-3">Model</th>
+                      <th>Risk</th>
+                      <th>Attack success</th>
+                      <th>Hallucination</th>
+                      <th>Latency</th>
+                      <th>Status</th>
+                      <th>Created</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {runs.map((r) => (
+                      <tr key={r.id} className="border-t">
+                        <td className="py-3 font-medium">{r.target_model}</td>
+                        <td>{r.risk_score}</td>
+                        <td>{r.attack_success_rate}%</td>
+                        <td>{r.hallucination_rate}%</td>
+                        <td>{r.latency_ms}ms</td>
+                        <td>
+                          <Badge className="border-accent/40 text-accent">{r.status}</Badge>
+                        </td>
+                        <td>{formatDate(r.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {runs.length === 0 ? (
+                  <p className="py-12 text-center text-muted-foreground">No tests yet. Launch one to populate audit history.</p>
+                ) : null}
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

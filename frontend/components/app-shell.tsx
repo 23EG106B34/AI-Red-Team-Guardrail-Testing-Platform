@@ -21,13 +21,14 @@ import { useAuth } from "@/components/auth-provider";
 import { CommandPalette } from "@/components/command-palette";
 import { cn } from "@/lib/utils";
 
-const nav: Array<{ href: Route; label: string; icon: typeof LayoutDashboard }> = [
+const baseNav: Array<{ href: string; label: string; icon: typeof LayoutDashboard }> = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tests", label: "Red-Team Tests", icon: Swords },
   { href: "/library", label: "Attack Library", icon: BookOpen },
-  { href: "/reports", label: "Reports", icon: FileText },
-  { href: "/admin", label: "Admin", icon: Users }
+  { href: "/reports", label: "Reports", icon: FileText }
 ];
+
+const adminNav = { href: "/admin", label: "Admin", icon: Users };
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -57,12 +58,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
           <nav className="mt-8 grid gap-1">
-            {nav.map((item) => {
+            {[
+              ...baseNav,
+              ...(user?.role === "admin" ? [adminNav] : [])
+            ].map((item) => {
               const active = pathname.startsWith(item.href);
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={item.href as Route}
                   className={cn(
                     "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition",
                     active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"

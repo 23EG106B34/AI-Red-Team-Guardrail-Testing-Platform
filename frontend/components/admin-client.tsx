@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { KeyRound, Server, Users } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -20,12 +21,26 @@ export function AdminClient() {
   const [provider, setProvider] = useState("");
   const [apiKey, setApiKey] = useState("");
 
-  useEffect(() => {
-    if (token) {
-      api.apiKeys(token).then(setKeys);
-      api.adminUsers(token).then(setUsers).catch(() => setUsers([]));
-    }
-  }, [token]);
+    const router = useRouter();
+
+    useEffect(() => {
+      if (token) {
+        api.apiKeys(token).then(setKeys);
+        if (user?.role === "admin") {
+          api.adminUsers(token).then(setUsers).catch(() => setUsers([]));
+        } else {
+          setUsers([]);
+        }
+      }
+    }, [token, user?.role]);
+
+    useEffect(() => {
+      if (user && user.role !== "admin") {
+        router.replace("/dashboard");
+      }
+    }, [user, router]);
+
+    if (user?.role !== "admin") return null;
 
   async function saveKey(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
