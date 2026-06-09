@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "framework": "@vercel/python",
+  "framework": "fastapi",
   "builds": [
     {
       "src": "app/main.py",
