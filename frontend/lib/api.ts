@@ -9,6 +9,7 @@ import type {
 } from "@/types/domain";
 
 const API_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL ??
   process.env.NEXT_PUBLIC_API_URL ??
   (process.env.NODE_ENV === "production" ? "" : "http://localhost:8000");
 
@@ -22,7 +23,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   if (!API_URL) {
     throw new Error(
-      "Missing NEXT_PUBLIC_API_URL. Set it in your Vercel environment variables to the deployed backend URL (e.g. https://your-backend-domain.com)."
+      "Missing NEXT_PUBLIC_BACKEND_URL or NEXT_PUBLIC_API_URL. In Vercel Services this should be injected automatically; otherwise set it to your deployed backend URL."
     );
   }
 

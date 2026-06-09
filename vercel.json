@@ -1,15 +1,15 @@
 {
-  "framework": "vercel-frontend",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "experimentalServices": {
     "frontend": {
-      "root": "frontend",
-      "routePrefix": "/",
-      "framework": "nextjs"
+      "entrypoint": "frontend",
+      "framework": "nextjs",
+      "routePrefix": "/"
     },
     "backend": {
-      "root": "backend",
-      "routePrefix": "/_/backend",
-      "framework": "@vercel/python"
+      "entrypoint": "backend/main.py",
+      "framework": "fastapi",
+      "routePrefix": "/api"
     }
   }
 }
