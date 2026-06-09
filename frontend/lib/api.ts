@@ -8,7 +8,10 @@ import type {
   User
 } from "@/types/domain";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ??
+  (process.env.NODE_ENV === "production" ? "" : "http://localhost:8000");
+
 
 type RequestOptions = RequestInit & { token?: string | null };
 
@@ -17,14 +20,29 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   headers.set("Content-Type", "application/json");
   if (options.token) headers.set("Authorization", `Bearer ${options.token}`);
 
+  if (!API_URL) {
+    throw new Error(
+      "Missing NEXT_PUBLIC_API_URL. Set it in your Vercel environment variables to the deployed backend URL (e.g. https://your-backend-domain.com)."
+    );
+  }
+
   try {
+    const controller = new AbortController();
+    const timeoutMs = 15000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
     const response = await fetch(`${API_URL}${path}`, {
       ...options,
       headers,
-      cache: "no-store"
+      cache: "no-store",
+      signal: controller.signal
     });
 
+    clearTimeout(timeoutId);
+
+
     if (!response.ok) {
+
       const detail = await response.json().catch(() => ({ detail: "Request failed" }));
       throw new Error(detail.detail ?? `Request failed with status ${response.status}`);
     }
@@ -32,9 +50,27 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     if (response.status === 204) return undefined as T;
     return response.json() as Promise<T>;
   } catch (error) {
-    if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
-      throw new Error(`Failed to connect to API at ${API_URL}. Please ensure the backend server is running.`);
+    const message = error instanceof Error ? error.message : String(error);
+
+    if (message.includes("aborted") || message.includes("timeout")) {
+      throw new Error(
+        `API request timed out after 15s while connecting to ${API_URL}. Please try again.`
+      );
     }
+
+    if (error instanceof TypeError && message.includes("Failed to fetch")) {
+      throw new Error(
+        `Backend unavailable. Failed to connect to API at ${API_URL}. Please check that the Render backend is deployed and reachable.`
+      );
+    }
+
+    // Invalid/Unexpected JSON responses
+    if (message.includes("Unexpected token") || message.includes("JSON")) {
+      throw new Error(
+        `Received an invalid response from the backend at ${API_URL}.`
+      );
+    }
+
     throw error;
   }
 }

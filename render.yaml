@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: ai-red-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: python -m app.main
+    autoDeploy: true
+    # Render will pass environment variables below to your app
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: FRONTEND_ORIGIN
+        value: http://localhost:3000
+      - key: REPORT_BASE_URL
+        value: http://localhost:8000
+      # The following are existing required config items; set them in Render
+      # - key: JWT_SECRET
+      #   value: "..."
+      # - key: DATABASE_URL
+      #   value: "..."
+

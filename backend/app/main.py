@@ -37,8 +37,11 @@ app = FastAPI(title=settings.app_name, version="1.0.0", lifespan=lifespan)
 app.state.limiter = limiter
 
 allowed_origins = [settings.frontend_origin]
-if settings.frontend_origin != "http://localhost:3001":
+# Always allow local dev origin(s)
+if "http://localhost:3001" not in allowed_origins:
     allowed_origins.append("http://localhost:3001")
+if "http://localhost:3000" not in allowed_origins:
+    allowed_origins.append("http://localhost:3000")
 
 app.add_middleware(
     CORSMiddleware,
