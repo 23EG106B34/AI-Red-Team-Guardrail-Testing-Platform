@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 from collections import defaultdict
 from docx import Document
 from reportlab.lib import colors
@@ -9,7 +10,7 @@ from app.models.entities import TestRun
 
 
 def generate_reports(test: TestRun) -> tuple[str, str]:
-    output = Path("reports/generated")
+    output = Path("/tmp/reports/generated") if os.getenv("VERCEL") == "1" else Path("reports/generated")
     output.mkdir(parents=True, exist_ok=True)
     pdf_path = output / f"{test.id}.pdf"
     docx_path = output / f"{test.id}.docx"

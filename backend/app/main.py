@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,7 +25,8 @@ def initialize_app() -> None:
         seed(db)
     finally:
         db.close()
-    Path("reports/generated").mkdir(parents=True, exist_ok=True)
+    report_dir = Path("/tmp/reports/generated") if os.getenv("VERCEL") == "1" else Path("reports/generated")
+    report_dir.mkdir(parents=True, exist_ok=True)
 
 
 @asynccontextmanager
@@ -64,6 +66,11 @@ def health():
     return {"status": "ok", "service": settings.app_name}
 
 
+@app.get("/api/health")
+def api_health():
+    return health()
+
+
 app.include_router(auth.router)
 app.include_router(attacks.router)
 app.include_router(tests.router)
@@ -71,4 +78,13 @@ app.include_router(reports.router)
 app.include_router(analytics.router)
 app.include_router(admin.router)
 app.include_router(api_keys.router)
-app.mount("/static", StaticFiles(directory="reports/generated", check_dir=False), name="static")
+app.include_router(auth.router, prefix="/api")
+app.include_router(attacks.router, prefix="/api")
+app.include_router(tests.router, prefix="/api")
+app.include_router(reports.router, prefix="/api")
+app.include_router(analytics.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")
+app.include_router(api_keys.router, prefix="/api")
+static_dir = "/tmp/reports/generated" if os.getenv("VERCEL") == "1" else "reports/generated"
+app.mount("/static", StaticFiles(directory=static_dir, check_dir=False), name="static")
+app.mount("/api/static", StaticFiles(directory=static_dir, check_dir=False), name="api-static")

@@ -17,7 +17,7 @@ class InMemoryRateLimiter:
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        if request.url.path == "/health":
+        if request.url.path in {"/health", "/api/health"}:
             return await call_next(request)
         key = request.client.host if request.client else "unknown"
         now = time.time()
