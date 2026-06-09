@@ -1,4 +1,5 @@
 {
+  "framework": "vercel-frontend",
   "experimentalServices": {
     "frontend": {
       "root": "frontend",
